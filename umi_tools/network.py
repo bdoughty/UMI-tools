@@ -2,11 +2,6 @@
 network.py - Network methods for dealing with UMIs
 =========================================================
 
-:Author: Tom Smith
-:Release: $Id$
-:Date: |today|
-:Tags: Python UMI
-
 '''
 
 from __future__ import absolute_import
@@ -106,12 +101,12 @@ def iter_nearest_neighbours(umis, substr_idx):
     use substring dict to get (approximately) all the nearest neighbours to
     each in a set of umis.
     '''
-    for u in umis:
+    for i, u in enumerate(umis, 1):
         neighbours = set()
         for idx, substr_map in substr_idx.items():
             u_sub = u[slice(*idx)]
             neighbours = neighbours.union(substr_map[u_sub])
-        neighbours.remove(u)
+        neighbours.difference_update(umis[:i])
         for nbr in neighbours:
             yield u, nbr
 
@@ -351,10 +346,11 @@ class UMIClusterer:
             self.get_connected_components = self._get_connected_components_null
             self.get_groups = self._group_unique
 
-    def __call__(self, umis, counts, threshold):
-        '''Counts is a directionary that maps UMIs to their counts'''
+    def __call__(self, umis, threshold):
+        '''umis is a dictionary that maps UMIs to their counts'''
 
-        umis = list(umis)
+        counts = umis
+        umis = list(umis.keys())
 
         self.positions += 1
 
@@ -404,7 +400,7 @@ class ReadDeduplicator:
         umis = bundle.keys()
         counts = {umi: bundle[umi]["count"] for umi in umis}
 
-        clusters = self.UMIClusterer(umis, counts, threshold)
+        clusters = self.UMIClusterer(counts, threshold)
 
         final_umis = [cluster[0] for cluster in clusters]
         umi_counts = [sum(counts[umi] for umi in cluster)
